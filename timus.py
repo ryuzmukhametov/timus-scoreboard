@@ -10,12 +10,10 @@ import jinja2
 START = '09:00:00 25 Sep 2009'
 END = '12:00:00 25 Sep 2009'
 USERS = {
-    80862: 'Orfest',
-    71690: 'ahmedov',
-    66282: 'yzlhm'
+    # User ID => title
 }
 PROBLEMS = {
-    1102: 'A', 1027: 'B', 1502: 'C', 1001: 'D', 1306: 'E', 1253: 'F'
+    # Problem ID => A/B/C...
 }
 WRONG_PENALTY = 20
 CRAWL_PAUSE = 5.0 # Pause between requests
