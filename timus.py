@@ -4,6 +4,7 @@ import urllib2
 import urlparse
 import re
 from BeautifulSoup import BeautifulSoup
+import jinja2
 
 ## Configuration
 START = '09:00:00 25 Sep 2009'
@@ -11,9 +12,10 @@ END = '12:00:00 25 Sep 2009'
 USERS = {
     80862: 'Orfest',
     71690: 'ahmedov',
+    66282: 'yzlhm'
 }
 PROBLEMS = {
-    1102: 'A', 1027: 'B', 1502: 'C', 1001: 'D', 1306: 'E'
+    1102: 'A', 1027: 'B', 1502: 'C', 1001: 'D', 1306: 'E', 1253: 'F'
 }
 WRONG_PENALTY = 20
 CRAWL_PAUSE = 5.0 # Pause between requests
@@ -42,12 +44,13 @@ def extract(soup):
     def user_url_to_id(url):
         """author.aspx?id=84033 => 84033"""
         return int(url[url.find('id=')+3:])
+    def all_child_text(col):
+        return u' '.join(map(unicode.strip, col.findAll(text=True)))
     column_extractors = {
-        'id': ('id', lambda col: col.string.strip()),
-        'date': ('date', lambda col: parse_date(u' '.join(
-                            map(unicode.strip, col.findAll(text=True))))),
-        'verdict_ac': ('status', lambda col: col.string.strip()),
-        'verdict_rj': ('status', lambda col: col.string.strip()),
+        'id': ('id', lambda col: all_child_text(col)),
+        'date': ('date', lambda col: parse_date(all_child_text(col))),
+        'verdict_ac': ('status', lambda col: all_child_text(col)),
+        'verdict_rj': ('status', lambda col: all_child_text(col)),
         'problem': ('problem', lambda col: int(col.find('a').string.strip())),
         # We want an ID only
         'coder': ('user', lambda col: (user_url_to_id(col.find('a')['href'])))
@@ -64,11 +67,13 @@ def extract(soup):
         items.append(data)
     return next_link, items
 
+
 def minutes(delta):
     assert delta.days == 0
     return delta.seconds / 60
 
-def print_board(board, start_date):
+
+def render(template, board, start_date):
     table = dict()
     scores = dict()
     # Calculate the score by assigning penalties etc.
@@ -85,24 +90,35 @@ def print_board(board, start_date):
                 scores[user].solved += 1
                 scores[user].minutes += delta + WRONG_PENALTY * status.wrong
             elif status.wrong:
-                table[user][board].plus = '-%d' % status.wrong
+                table[user][problem].plus = '-%d' % status.wrong
     # Generate the table
-    problems_sorted = sorted(PROBLEMS.keys(), key=PROBLEMS.get)
     def compare(a, b):
         return -cmp(scores[a].solved, scores[b].solved) or \
-               cmp(scores[a].minutes, scores[b].minutes)
-    for problem in problems_sorted:
-        print '| %s (%d)' % (PROBLEMS[problem], problem),
-    print
-    for user in sorted(USERS, cmp=compare):
-        print USERS[user], scores[user].minutes,
-        for problem in problems_sorted:
-            print '| %s %s' % (table[user][problem].plus,
-                               table[user][problem].time),
-        print
+               cmp(scores[a].minutes, scores[b].minutes) or \
+               cmp(USERS[a], USERS[b])
+    return template.render({
+        'users_sorted': sorted(USERS, cmp=compare),
+        'problems_sorted': sorted(PROBLEMS, key=PROBLEMS.get),
+        'users': USERS,
+        'problems': PROBLEMS,
+        'scores': scores,
+        'table': table
+    })
+    # for problem in problems_sorted:
+    #     print '| %s (%d)' % (PROBLEMS[problem], problem),
+    # print
+    # for user in sorted(USERS, cmp=compare):
+    #     print USERS[user], scores[user].minutes,
+    #     for problem in problems_sorted:
+    #         print '| %s %s' % (table[user][problem].plus,
+    #                            table[user][problem].time),
+    #     print
+
 
 def main(start_url='http://acm.timus.ru/status.aspx?count=100'):
     start_date, end_date = parse_date(START), parse_date(END)
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader('.'))
+
     seen = set() # set of seen submission IDs
     board = dict()
     for user in USERS:
@@ -138,7 +154,9 @@ def main(start_url='http://acm.timus.ru/status.aspx?count=100'):
         if not seen_older:
             time.sleep(CRAWL_PAUSE)
 
-    print_board(board, start_date)
+    with open('results.html', 'w') as fp:
+        template = env.get_template('template.html')
+        print >>fp, render(template, board, start_date).encode('utf-8')
 
 
 if __name__ == '__main__':

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Results</title>
+    <style type="text/css">
+    body { font: 100%/120% helvetica, arial, sans-serif; }
+    table { border-collapse: collapse; }
+    td, th { padding: 10px; }
+    th { font-weight: bold; text-align: center; width: 50px; }
+    tr.header td, tr.header th { background: #000 !important; color: #fff !important; }
+    tr.odd td { background: #ddd; color: #000; }
+    tr.even td { background: #eee; color: #000; }
+    td.sub { text-align: center; }
+    td.sub strong, td.sub em { display: block; }
+    td.sub em { font-size: 90%; }
+    tr:hover td { background: #FFFF88; }
+    </style>
+</head>
+<body>
+    <table>
+        <tr class="header">
+            <td>Team</td>
+            <td>+</td>
+            <td>Time</td>
+            {% for problem in problems_sorted %}
+                <th>{{ problems[problem] }}</th>
+            {% endfor %}
+        </tr>
+        {% set odd, prev = True, 0 %}
+        {% for user in users_sorted %}
+            {% set score = scores[user] %}
+            {% if score.solved != prev %}
+                {% set odd, prev = not odd, score.solved %}
+            {% endif %}
+            <tr class="{% if odd %}odd{% else %}even{% endif %}">
+                <td>{{ users[user] }}</td>
+                <td>{{ score.solved }}</td>
+                <td>{{ score.minutes }}</td>
+                {% for problem in problems_sorted %}
+                <td class="sub">
+                    {% set cell = table[user][problem] %}
+                    <strong class="{% if cell.plus.startswith('+') %}accepted{% endif %}">
+                        {{ cell.plus }}
+                    </strong>
+                    <em>{{ cell.time }}</em>
+                </td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
