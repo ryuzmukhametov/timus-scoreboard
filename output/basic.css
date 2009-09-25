@@ -1,0 +1,17 @@
+body { font: 100%/120% helvetica, arial, sans-serif; }
+body.top { padding: 10px 0 0 0; margin: 0; border-bottom: 1px solid #888; }
+.clear { clear: both; }
+table { border-collapse: collapse; }
+td, th { padding: 10px; }
+th { font-weight: bold; text-align: center; width: 50px; }
+tr.header td, tr.header th { background: #000 !important; color: #fff !important; }
+tr.odd td { background: #ddd; color: #000; }
+tr.even td { background: #eee; color: #000; }
+td.sub { text-align: center; }
+td.sub strong, td.sub em { display: block; }
+td.sub em { font-size: 90%; }
+tr:hover td { background: #FFFF88; }
+ul { margin: 0; padding: 0 0 0 10px; }
+ul li { list-style-type: none; float: left; margin: 0 5px 0 0; padding: 5px; }
+ul a { display: block; padding: 5px 10px; margin: -5px; background: #ddd; color: #000;
+       font-weight: bold; text-decoration: none; }

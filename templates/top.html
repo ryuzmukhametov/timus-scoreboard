@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ title }}</title>
+    <style type="text/css">
+    @import url(basic.css);
+    </style>
+</head>
+<body class="top">
+    <ul>
+        <li>{{ title }}</li>
+        <li><a href="table.html" target="bottom">Scores</a></li>
+        <li><a href="http://acm.timus.ru/submit.aspx" target="bottom">Submit</a></li>
+        <li>Problems:</li>
+        {% set url = "http://acm.timus.ru/problem.aspx?space=1&amp;num=" %}
+        {% for problem in problems_sorted %}
+            <li>
+                <a href="{{ url }}{{ problem }}" target="bottom">{{ problems[problem] }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+    <div class="clear"></div>
+</body>
+</html>
