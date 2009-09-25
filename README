@@ -1,0 +1,7 @@
+timus-scoreboard
+================
+
+This is a custom contest support for Timus Online Judge (acm.timus.ru).
+Define the players and problems to get an automatically-updating score
+board which is generated according to ACM rules (penalty for incorrect
+submissions etc.).
