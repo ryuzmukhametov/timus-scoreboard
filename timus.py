@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import time
 import datetime
 import urllib2
@@ -6,14 +7,18 @@ import re
 from BeautifulSoup import BeautifulSoup
 import jinja2
 
+from __future__ import with_statement
+
 ## Configuration
-START = '09:00:00 25 Sep 2009'
-END = '12:00:00 25 Sep 2009'
-TITLE = u'Example timus contest'
+START = '11:00:00 30 Sep 2009'
+END = '12:00:00 30 Sep 2009'
+TITLE = u'ACM treniruotė'
 USERS = {
     # User ID => title
+    83974: u'Team 1 (Budriūnas, Paltanavičius, Visockas)'
 }
 PROBLEMS = {
+    1000: 'A'
     # Problem ID => A/B/C...
 }
 WRONG_PENALTY = 20
