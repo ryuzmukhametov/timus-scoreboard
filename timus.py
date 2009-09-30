@@ -11,16 +11,30 @@ from BeautifulSoup import BeautifulSoup
 import jinja2
 
 ## Configuration
-START = '11:00:00 30 Sep 2009'
-END = '12:00:00 30 Sep 2009'
+START = '16:00:00 30 Sep 2009'
+END = '21:00:00 30 Sep 2009'
 TITLE = u'ACM treniruotė'
 USERS = {
     # User ID => title
-    83974: u'Team 1 (Budriūnas, Paltanavičius, Visockas)'
+    83974: u'Team 1 (Budriūnas, Paltanavičius, Visockas)',
+    83974: u'Team 1 (Budriūnas, Paltanavičius, Visockas)',
+    84313: u'Team 2 (Šarūnas Ledas, Naktinis, Tamošiūnas)',
+    84314: u'Team 3 (Astrauka, Bacevičius, Bugelskis)',
+    84315: u'Team 4 (Damarackas, Bruzgys, Žilvinas Ledas)',
+    84316: u'Team 5 (Maconko, Mikutavičius, Varnaitis)'
 }
 PROBLEMS = {
-    1000: 'A'
     # Problem ID => A/B/C...
+    1654: 'A',
+    1098: 'B',
+    1037: 'C',
+    1133: 'D',
+    1048: 'E',
+    1140: 'F',
+    1277: 'G',
+    1278: 'H',
+    1670: 'I',
+    1657: 'J'
 }
 WRONG_PENALTY = 20
 CRAWL_PAUSE = 5.0 # Pause between requests
