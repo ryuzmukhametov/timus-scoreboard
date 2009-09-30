@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+
+from __future__ import with_statement
+
 import time
 import datetime
 import urllib2
@@ -6,8 +9,6 @@ import urlparse
 import re
 from BeautifulSoup import BeautifulSoup
 import jinja2
-
-from __future__ import with_statement
 
 ## Configuration
 START = '11:00:00 30 Sep 2009'
