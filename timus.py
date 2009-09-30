@@ -38,7 +38,7 @@ PROBLEMS = {
 }
 WRONG_PENALTY = 20
 CRAWL_PAUSE = 5.0 # Pause between requests
-UPDATE_INTERVAL = 60 # Seconds
+UPDATE_INTERVAL = 3 * 60 # Seconds
 
 
 class odict(dict):
