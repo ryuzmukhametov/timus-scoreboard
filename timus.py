@@ -11,8 +11,8 @@ from BeautifulSoup import BeautifulSoup
 import jinja2
 
 ## Configuration
-START = '16:00:00 30 Sep 2009'
-END = '21:00:00 30 Sep 2009'
+START = '16:15:00 30 Sep 2009'
+END = '21:15:00 30 Sep 2009'
 TITLE = u'ACM treniruotė'
 USERS = {
     # User ID => title
@@ -166,7 +166,7 @@ def main(start_url='http://acm.timus.ru/status.aspx?count=100'):
                        board[item.user][item.problem].accepted = item.date
                    else:
                        board[item.user][item.problem].wrong += 1
-                   seen.add(id)
+                   seen.add(item.id)
             if not seen_older:
                 time.sleep(CRAWL_PAUSE)
         return not seen_newer
