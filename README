@@ -50,9 +50,9 @@ Problems must be entered in the `problems` section. In the Timus system,
 problems have names, but for an ACM-style contest you will want to have
 short names (A/B/C/... is a standard).
 
-========================
+------------------------
 Running timus-scoreboard
-========================
+------------------------
 
 After installing `timus.scoreboard` egg, you should be able to execute
 the `timus-scoreboard` script. The location of this script depends on
