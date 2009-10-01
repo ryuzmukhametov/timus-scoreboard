@@ -1,0 +1,22 @@
+==============
+Date utilities
+==============
+
+We have some utilities that deal with dates, most notably with the date
+format that is used by the Timus Online Judge:
+
+    >>> from timus.scoreboard import parse_date, get_minutes
+
+    >>> t1 = parse_date('09:53:38 25 Sep 2009')
+    >>> t2 = parse_date('12:53:38 25 Sep 2009')
+    >>> t3 = parse_date('12:53:38 26 Sep 2009')
+
+    >>> t1
+    datetime.datetime(2009, 9, 25, 9, 53, 38)
+
+We often want to extract a number of total minutes from `timedelta` object:
+
+    >>> get_minutes(t2 - t1)
+    180
+    >>> get_minutes(t3 - t2) / 60
+    24

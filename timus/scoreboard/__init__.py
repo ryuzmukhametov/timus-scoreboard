@@ -16,6 +16,32 @@ from BeautifulSoup import BeautifulSoup
 import jinja2
 
 
+def parse_date(str):
+    """Parse date from given, e.g. ``09:53:38 25 Sep 2009``.
+    
+    While this is not the most usual format, it is used by the Timus system
+    and therefore I took the opportunity to reuse it widely."""
+    if isinstance(str, datetime.datetime):
+        return str
+    return datetime.datetime.strptime(str, '%H:%M:%S %d %b %Y')
+
+
+def get_minutes(delta):
+    """Extract the number of minutes from timedelta object."""
+    return delta.days * 24 * 60 + delta.seconds / 60
+
+
+class odict(dict):
+    """Dictionary that allows attribute access, e.g. if `foo` is instance
+    of `odict` then foo.x == foo['x']."""
+
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError
+
+
 class Contest(object):
     """Contest configuration."""
 
@@ -71,24 +97,6 @@ class ConfiguredContest(Contest):
                 setattr(self, name, value)
 
 
-class odict(dict):
-    """Dictionary that allows attribute access, e.g. if `foo` is instance
-    of `odict` then foo.x == foo['x']."""
-
-    def __getattr__(self, name):
-        try:
-            return self[name]
-        except KeyError:
-            raise AttributeError
-
-
-def parse_date(str):
-    """Parse date from given, e.g. ``09:53:38 25 Sep 2009``."""
-    if isinstance(str, datetime.datetime):
-        return str
-    return datetime.datetime.strptime(str, '%H:%M:%S %d %b %Y')
-
-
 def extract(soup):
     footer = soup.find('td', {'class': 'footer_right'})
     next_link = footer.find('a', text=re.compile('Next')).parent['href']
@@ -119,11 +127,6 @@ def extract(soup):
                 data[key] = fn(col)
         items.append(data)
     return next_link, items
-
-
-def minutes(delta):
-    assert delta.days == 0
-    return delta.seconds / 60
 
 
 def get_render_context(board, start_date):
