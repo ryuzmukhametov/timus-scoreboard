@@ -1,47 +1,79 @@
-# -*- coding: utf-8 -*-
+"""Scoreboard for the Timus contest system (http://acm.timus.ru/).
 
-from __future__ import with_statement
+Since Timus does not allow the creation of custom contests, this script
+helps by scraping the judge status pages in order to generate score
+table (all according to ACM rules).
+"""
 
 import time
 import datetime
 import urllib2
 import urlparse
 import re
+import ConfigParser
+
 from BeautifulSoup import BeautifulSoup
 import jinja2
 
-## Configuration
-START = '16:15:00 30 Sep 2009'
-END = '21:15:00 30 Sep 2009'
-TITLE = u'ACM treniruotė'
-USERS = {
-    # User ID => title
-    83974: u'Team 1 (Budriūnas, Paltanavičius, Visockas)',
-    83974: u'Team 1 (Budriūnas, Paltanavičius, Visockas)',
-    84313: u'Team 2 (Šarūnas Ledas, Naktinis, Tamošiūnas)',
-    84314: u'Team 3 (Astrauka, Bacevičius, Bugelskis)',
-    84315: u'Team 4 (Damarackas, Bruzgys, Žilvinas Ledas)',
-    84316: u'Team 5 (Maconko, Mikutavičius, Varnaitis)'
-}
-PROBLEMS = {
-    # Problem ID => A/B/C...
-    1654: 'A',
-    1098: 'B',
-    1037: 'C',
-    1133: 'D',
-    1048: 'E',
-    1140: 'F',
-    1277: 'G',
-    1278: 'H',
-    1670: 'I',
-    1657: 'J'
-}
-WRONG_PENALTY = 20
-CRAWL_PAUSE = 5.0 # Pause between requests
-UPDATE_INTERVAL = 3 * 60 # Seconds
+
+class Contest(object):
+    """Contest configuration."""
+
+    def __init__(self):
+        if self.title is None or \
+           self.start is None or \
+           self.end is None or \
+           not self.users or \
+           not self.problems:
+            raise ValueError("Incomplete configuration")
+
+    # Name of the contest
+    title = None
+
+    # Contest start and end date, either an instance of datetime,
+    # or something like `09:00:00 25 Sep 2009`
+    start = None
+    end = None
+
+    # Mapping: user ID => display name
+    users = dict()
+
+    # Mapping: problem ID => task name (A/B/C... is typical for ACM)
+    problems = dict()
+
+    # Self-explanatory configuration variables
+    wrong_penalty = 20
+    crawl_pause = 5.0
+    update_interval = 60.0
+
+
+class ConfiguredContest(Contest):
+    """Subclass of Contest that reads configuration from a text file.
+    """
+
+    def __init__(self, fp):
+        parser = ConfigParser.ConfigParser()
+        parser.readfp(fp)
+        self.load_configuration(parser)
+
+    def load_configuration(self, parser):
+        self.title = parser.get('contest', 'title')
+        self.start = parse_date(parser.get('contest', 'start'))
+        self.end = parse_date(parser.get('contest', 'end'))
+        self.users = dict(parser.items('users'))
+        self.problems = dict(parser.items('problems'))
+        for name, getter in (('wrong_penalty', 'getint'),
+                             ('crawl_pause', 'getfloat'),
+                             ('update_interval', 'getfloat')):
+            if parser.has_option('config', name):
+                value = getattr(parser, getter)('config', name)
+                setattr(self, name, value)
 
 
 class odict(dict):
+    """Dictionary that allows attribute access, e.g. if `foo` is instance
+    of `odict` then foo.x == foo['x']."""
+
     def __getattr__(self, name):
         try:
             return self[name]
@@ -118,7 +150,6 @@ def get_render_context(board, start_date):
                cmp(USERS[a], USERS[b])
     return {
         'title': TITLE,
-        'date': datetime.datetime.now(),
         'users_sorted': sorted(USERS, cmp=compare),
         'problems_sorted': sorted(PROBLEMS, key=PROBLEMS.get),
         'users': USERS,
@@ -141,8 +172,6 @@ def main(start_url='http://acm.timus.ru/status.aspx?count=100'):
     def update():
         url = start_url
         seen_older = seen_newer = False
-        ## TODO: optimize the update routing so that it doesn't crawl
-        ## *all* pages every time. Only the first ones should be necessary.
         while not seen_older:
             print 'Retrieving %s...' % url
             soup = BeautifulSoup(urllib2.urlopen(url))
@@ -166,7 +195,7 @@ def main(start_url='http://acm.timus.ru/status.aspx?count=100'):
                        board[item.user][item.problem].accepted = item.date
                    else:
                        board[item.user][item.problem].wrong += 1
-                   seen.add(item.id)
+                   seen.add(id)
             if not seen_older:
                 time.sleep(CRAWL_PAUSE)
         return not seen_newer

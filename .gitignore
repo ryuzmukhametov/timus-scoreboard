@@ -3,4 +3,5 @@
 .installed.cfg
 /bin
 /develop-eggs
+/timus.scoreboard.egg-info
 /parts

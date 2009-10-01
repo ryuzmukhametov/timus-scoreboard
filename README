@@ -1,7 +1,9 @@
-timus-scoreboard
-================
+-----
+About
+-----
 
-This is a custom contest support for Timus Online Judge (acm.timus.ru).
+This Python package providers support for custom contests on the
+Timus Online Judge (acm.timus.ru).
+
 Define the players and problems to get an automatically-updating score
-board which is generated according to ACM rules (penalty for incorrect
-submissions etc.).
+board which is generated according to the ACM ICPC rules.

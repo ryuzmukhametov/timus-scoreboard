@@ -1,0 +1,65 @@
+=====================
+Contest configuration
+=====================
+
+The easiest way to configure a contest is by defining it with a configuration
+file. The contents of the file should follow this syntax:
+
+    >>> conf = """
+    ... [contest]
+    ... title = My sample contest
+    ... start = 12:00:00 1 Oct 2012
+    ... end = 17:00:00 1 Oct 2012
+    ...
+    ... [users]
+    ... 1000 = Team 1 (John, Jack, Suzan)
+    ... 1001 = Team 2 (Mike, Roger, Dan)
+    ...
+    ... [problems]
+    ... 1000 = A
+    ... 1001 = B
+    ... 1002 = C
+    ... 1003 = D
+    ... """
+
+We will examine what this file gets parsed to:
+
+    >>> from timus.scoreboard import ConfiguredContest
+    >>> from StringIO import StringIO
+    
+    >>> fake_file = StringIO(conf)
+    >>> contest = ConfiguredContest(fake_file)
+    
+    >>> contest.title
+    'My sample contest'
+    >>> contest.start
+    datetime.datetime(2012, 10, 1, 12, 0)
+    >>> contest.end
+    datetime.datetime(2012, 10, 1, 17, 0)
+    >>> sorted(contest.problems.items())
+    [('1000', 'A'), ('1001', 'B'), ('1002', 'C'), ('1003', 'D')]
+    >>> sorted(contest.users.items())
+    [('1000', 'Team 1 (John, Jack, Suzan)'), ('1001', 'Team 2 (Mike, Roger, Dan)')]
+
+Certain configuration parameters are also accepted albeit not required.
+The defaults are sensible enough not to be changed:
+
+    >>> contest.wrong_penalty
+    20
+
+However, if you ever find a need to change them:
+
+    >>> fake_file = StringIO(conf + """
+    ... [config]
+    ... update_interval = 30
+    ... wrong_penalty = 10
+    ... """)
+    >>> tuned_contest = ConfiguredContest(fake_file)
+    >>> contest.update_interval
+    60.0
+    >>> tuned_contest.update_interval
+    30.0
+    >>> contest.wrong_penalty
+    20
+    >>> tuned_contest.wrong_penalty
+    10
