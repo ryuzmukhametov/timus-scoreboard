@@ -13,6 +13,7 @@ import urllib2
 import urlparse
 import re
 import ConfigParser
+import optparse
 
 from BeautifulSoup import BeautifulSoup
 import jinja2
@@ -119,11 +120,13 @@ class Crawler(object):
             for problem in self.contest.problems:
                 self.board[user][problem] = odict(accepted=False, wrong=0)
 
-    def run(self):
+    def run(self, once=False):
         env = jinja2.Environment(loader=self.build_template_loader())
         while True:
             contest_in_progress = self.update()
             self.output(env)
+            if once:
+                break
             if not contest_in_progress:
                 self.log('Contest has ended.')
                 break
@@ -131,6 +134,7 @@ class Crawler(object):
 
     def log(self, message):
         """Log a message."""
+        # TODO: use logging module from stdlib or at least print the date
         sys.stderr.write(message)
 
     def build_template_loader(self):
@@ -218,7 +222,7 @@ class Crawler(object):
         url = self.contest.start_url
         seen_older = seen_newer = False
         while not seen_older:
-            print 'Retrieving %s...' % url
+            self.log('Retrieving %s...' % url)
             source = urllib2.urlopen(url)
             next_link, items = self.extract(source)
             url = urlparse.urljoin(url, next_link)
@@ -254,17 +258,25 @@ class Crawler(object):
         context = self.build_render_context()
         for template in self.contest.templates:
             output_name = os.path.join(self.contest.output_dir, template)
-            print 'Writing %s...' % output_name
+            self.log('Writing %s...' % output_name)
             with open(output_name, 'w') as fp:
                 template = env.get_template(template)
                 print >>fp, template.render(context).encode('utf-8')
 
 
 def main():
-    with open('default.conf') as fp:
+    usage = "usage: %prog [options] configuration-file"
+    parser = optparse.OptionParser(usage=usage)
+    parser.add_option('-n', '--once', dest='once', action='store_true',
+                      help="Quit immediately after updating the board")
+    (options, args) = parser.parse_args()
+    if len(args) != 1:
+        parser.error("name of the configuration file must be given")
+    with open(args[0]) as fp:
         contest = ConfiguredContest(fp)
         crawler = Crawler(contest)
-        crawler.run()
+        crawler.run(once=options.once)
+
 
 if __name__ == '__main__':
     main()
