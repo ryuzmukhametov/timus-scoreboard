@@ -8,6 +8,8 @@ This Python package provides support for custom contests on the
 Define the players and problems to get an automatically-updating score
 board which is generated according to the ACM ICPC rules.
 
+The `sample output <http://github.com/admp/timus-scoreboard/raw/master/sample-output/index.html>`_ is available for preview.
+
 -------------
 Configuration
 -------------
