@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(name='timus.scoreboard',
     version='0.1',
-    description='Custom contest support for the Timus contest system',
+    description='Custom contest support for the Timus Online Judge',
     long_description=open('README').read(),
     author=u'Adomas Paltanavičius',
     author_email='adomas@shrubberysoft.com',
