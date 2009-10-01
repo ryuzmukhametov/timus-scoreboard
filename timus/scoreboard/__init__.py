@@ -5,6 +5,8 @@ helps by scraping the judge status pages in order to generate score
 table (all according to ACM rules).
 """
 
+import sys
+import os.path
 import time
 import datetime
 import urllib2
@@ -46,11 +48,8 @@ class Contest(object):
     """Contest configuration."""
 
     def __init__(self):
-        if self.title is None or \
-           self.start is None or \
-           self.end is None or \
-           not self.users or \
-           not self.problems:
+        if self.title is None or self.start is None or \
+           self.end is None or not self.users or not self.problems:
             raise ValueError("Incomplete configuration")
 
     # Name of the contest
@@ -71,6 +70,10 @@ class Contest(object):
     wrong_penalty = 20
     crawl_pause = 5.0
     update_interval = 60.0
+    start_url = 'http://acm.timus.ru/status.aspx?count=100'
+    template_dir = None
+    templates = ('index.html', 'top.html', 'table.html')
+    output_dir = 'output'
 
 
 class ConfiguredContest(Contest):
@@ -91,135 +94,177 @@ class ConfiguredContest(Contest):
         self.problems = dict(parser.items('problems'))
         for name, getter in (('wrong_penalty', 'getint'),
                              ('crawl_pause', 'getfloat'),
-                             ('update_interval', 'getfloat')):
+                             ('update_interval', 'getfloat'),
+                             ('start_url', 'get'),
+                             ('template_dir', 'get'),
+                             ('output_dir', 'get')):
             if parser.has_option('config', name):
                 value = getattr(parser, getter)('config', name)
                 setattr(self, name, value)
+        if parser.has_option('config', 'templates'):
+            self.templates = parser.get('config', 'templates').split()
 
 
-def extract(soup):
-    footer = soup.find('td', {'class': 'footer_right'})
-    next_link = footer.find('a', text=re.compile('Next')).parent['href']
-    table = soup.find('table', {'class': 'status'})
-    items = []
-    def user_url_to_id(url):
-        """author.aspx?id=84033 => 84033"""
-        return int(url[url.find('id=')+3:])
-    def all_child_text(col):
-        return u' '.join(map(unicode.strip, col.findAll(text=True)))
-    column_extractors = {
-        'id': ('id', lambda col: all_child_text(col)),
-        'date': ('date', lambda col: parse_date(all_child_text(col))),
-        'verdict_ac': ('status', lambda col: all_child_text(col)),
-        'verdict_rj': ('status', lambda col: all_child_text(col)),
-        'problem': ('problem', lambda col: int(col.find('a').string.strip())),
-        # We want an ID only
-        'coder': ('user', lambda col: (user_url_to_id(col.find('a')['href'])))
-    }
-    for row in table.findAll('tr'):
-        if row['class'] in ('header',):
-            continue
-        data = odict()
-        for col in row.findAll('td'):
-            css = col['class']
-            if css in column_extractors:
-                key, fn = column_extractors[css]
-                data[key] = fn(col)
-        items.append(data)
-    return next_link, items
+class Crawler(object):
+    """Timus crawler and submission aggregator."""
 
+    def __init__(self, contest):
+        self.contest = contest
+        # Set of seen submission IDs
+        self.seen = set()
+        # Build an empty board
+        self.board = dict()
+        for user in self.contest.users:
+            self.board[user] = dict()
+            for problem in self.contest.problems:
+                self.board[user][problem] = odict(accepted=False, wrong=0)
 
-def get_render_context(board, start_date):
-    table = dict()
-    scores = dict()
-    # Calculate the score by assigning penalties etc.
-    for user in USERS:
-        scores[user] = odict(solved=0, minutes=0)
-        for problem in PROBLEMS:
-            table.setdefault(user, {})[problem] = odict(plus='', time='')
-            status = board[user][problem]
-            if status.accepted:
-                delta = minutes(status.accepted - start_date)
-                table[user][problem].update(
-                    plus='+%s' % (str(status.wrong) if status.wrong else ''),
-                    time='%d:%.2d' % divmod(delta, 60))
-                scores[user].solved += 1
-                scores[user].minutes += delta + WRONG_PENALTY * status.wrong
-            elif status.wrong:
-                table[user][problem].plus = '-%d' % status.wrong
-    # Generate the table
-    def compare(a, b):
-        return -cmp(scores[a].solved, scores[b].solved) or \
-               cmp(scores[a].minutes, scores[b].minutes) or \
-               cmp(USERS[a], USERS[b])
-    return {
-        'title': TITLE,
-        'users_sorted': sorted(USERS, cmp=compare),
-        'problems_sorted': sorted(PROBLEMS, key=PROBLEMS.get),
-        'users': USERS,
-        'problems': PROBLEMS,
-        'scores': scores,
-        'table': table
-    }
+    def run(self):
+        env = jinja2.Environment(loader=self.build_template_loader())
+        while True:
+            contest_in_progress = self.update()
+            self.output(env)
+            if not contest_in_progress:
+                self.log('Contest has ended.')
+                break
+            time.sleep(self.contest.update_interval)
 
+    def log(self, message):
+        """Log a message."""
+        sys.stderr.write(message)
 
-def main(start_url='http://acm.timus.ru/status.aspx?count=100'):
-    start_date, end_date = parse_date(START), parse_date(END)
-    env = jinja2.Environment(loader=jinja2.FileSystemLoader('templates'))
+    def build_template_loader(self):
+        """Build Jinja2 template loader that allows users to override templates
+        yet falls back to the ones shipped with this package."""
+        loaders = [jinja2.PackageLoader(__name__, 'templates')]
+        if self.contest.template_dir is not None:
+            loaders.insert(0, jinja2.FileSystemLoader(template_dir))
+        return jinja2.ChoiceLoader(loaders)
 
-    seen = set() # set of seen submission IDs
-    board = dict()
-    for user in USERS:
-        for problem in PROBLEMS:
-            board.setdefault(user, {})[problem] = odict(accepted=False, wrong=0)
+    def extract(self, source):
+        """Extract items and link to the next page from the judge status page."""
+        soup = BeautifulSoup(source)
+        footer = soup.find('td', {'class': 'footer_right'})
+        next_link = footer.find('a', text=re.compile('Next')).parent['href']
+        table = soup.find('table', {'class': 'status'})
+        items = []
+        def user_url_to_id(url):
+            """author.aspx?id=84033 => 84033"""
+            return int(url[url.find('id=')+3:])
+        def all_child_text(col):
+            return u' '.join(map(unicode.strip, col.findAll(text=True)))
+        column_extractors = {
+            'id': ('id', lambda col: all_child_text(col)),
+            'date': ('date', lambda col: parse_date(all_child_text(col))),
+            'verdict_ac': ('status', lambda col: all_child_text(col)),
+            'verdict_rj': ('status', lambda col: all_child_text(col)),
+            'problem': ('problem', lambda col: int(col.find('a').string.strip())),
+            # We want an ID only
+            'coder': ('user', lambda col: (user_url_to_id(col.find('a')['href'])))
+        }
+        for row in table.findAll('tr'):
+            if row['class'] in ('header',):
+                continue
+            data = odict()
+            for col in row.findAll('td'):
+                css = col['class']
+                if css in column_extractors:
+                    key, fn = column_extractors[css]
+                    data[key] = fn(col)
+            items.append(data)
+        return next_link, items
 
-    def update():
-        url = start_url
+    def build_render_context(self):
+        """Build context for the templates."""
+        table = dict()
+        scores = dict()
+        # Calculate the score by assigning penalties etc.
+        for user in self.contest.users:
+            scores[user] = odict(solved=0, minutes=0)
+            for problem in self.contest.problems:
+                table.setdefault(user, {})[problem] = odict(plus='', time='')
+                status = self.board[user][problem]
+                if status.accepted:
+                    delta = get_minutes(status.accepted - start_date)
+                    table[user][problem].update(
+                        plus='+%s' % (str(status.wrong) if status.wrong else ''),
+                        time='%d:%.2d' % divmod(delta, 60))
+                    scores[user].solved += 1
+                    scores[user].minutes += delta
+                    scores[user].minutes += self.contest.wrong_penalty * status.wrong
+                elif status.wrong:
+                    table[user][problem].plus = '-%d' % status.wrong
+        def compare_users(a, b):
+            """User comparator that sorts by problems solved first, next by minutes,
+            then by the display name."""
+            return -cmp(scores[a].solved, scores[b].solved) or \
+                   cmp(scores[a].minutes, scores[b].minutes) or \
+                   cmp(self.contest.users[a], self.contest.users[b])
+        return {
+            'date': datetime.datetime.utcnow(),
+            'title': self.contest.title,
+            'users': self.contest.users,
+            'users_sorted': sorted(self.contest.users, cmp=compare_users),
+            # Sort by name
+            'problems': self.contest.problems,
+            'problems_sorted': sorted(self.contest.problems,
+                                      key=self.contest.problems.get),
+            'scores': scores,
+            'table': table
+        }
+
+    def update(self):
+        """Crawl the pages and update the board."""
+        url = self.contest.start_url
         seen_older = seen_newer = False
         while not seen_older:
             print 'Retrieving %s...' % url
-            soup = BeautifulSoup(urllib2.urlopen(url))
-            next_link, items = extract(soup)
+            source = urllib2.urlopen(url)
+            next_link, items = self.extract(source)
             url = urlparse.urljoin(url, next_link)
+            ## TODO: we should not recrawl all pages every time. An easy fix
+            ## would be to stop fetching new pages as soon as there are 
+            ## `seen` items already.
             for item in items:
-                if item.date > end_date:
+                if item.date > self.contest.end:
                     seen_newer = True
-                if item.date < start_date:
+                if item.date < self.contest.start:
                     seen_older = True
-                if item.id not in seen and \
-                   item.problem in PROBLEMS and item.user in USERS and \
-                   start_date <= item.date <= end_date:
+                if item.id not in self.seen and \
+                   item.problem in self.contest.problems and \
+                   item.user in self.contest.users and \
+                   self.contest.start <= item.date <= self.contest.end:
                    # Was the problem already accepted for this team?
-                   if board[item.user][item.problem].accepted and \
-                      item.date > board[item.user][item.problem].accepted:
+                   if self.board[item.user][item.problem].accepted and \
+                      item.date > self.board[item.user][item.problem].accepted:
                        # Different time might mean higher (= worse) time
                        continue
                    # Accepted?
                    if item.status in ('Accepted',):
-                       board[item.user][item.problem].accepted = item.date
+                       self.board[item.user][item.problem].accepted = item.date
                    else:
-                       board[item.user][item.problem].wrong += 1
-                   seen.add(id)
+                       self.board[item.user][item.problem].wrong += 1
+                   self.seen.add(item.id)
             if not seen_older:
-                time.sleep(CRAWL_PAUSE)
+                time.sleep(self.contest.crawl_pause)
         return not seen_newer
 
-    def output():
-        context = get_render_context(board, start_date)
-        for template in ('index.html', 'top.html', 'table.html'):
-            output_name = 'output/%s' % template
+    def output(self, env):
+        """Output the board and other pages based on the templates."""
+        context = self.build_render_context()
+        for template in self.contest.templates:
+            output_name = os.path.join(self.contest.output_dir, template)
             print 'Writing %s...' % output_name
             with open(output_name, 'w') as fp:
                 template = env.get_template(template)
                 print >>fp, template.render(context).encode('utf-8')
 
-    while True:
-        contest_in_progress = update()
-        output()
-        if not contest_in_progress:
-            print 'Contest has ended.'
-            break
-        time.sleep(UPDATE_INTERVAL)
+
+def main():
+    with open('default.conf') as fp:
+        contest = ConfiguredContest(fp)
+        crawler = Crawler(contest)
+        crawler.run()
 
 if __name__ == '__main__':
     main()

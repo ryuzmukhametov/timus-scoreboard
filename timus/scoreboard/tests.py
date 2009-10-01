@@ -7,6 +7,7 @@ def test_suite():
     tests = unittest.TestSuite([
         doctest.DocFileSuite('utilities.txt', optionflags=default_options),
         doctest.DocFileSuite('configuration.txt', optionflags=default_options),
+        doctest.DocFileSuite('crawler.txt', optionflags=default_options),
     ])
     return tests
 

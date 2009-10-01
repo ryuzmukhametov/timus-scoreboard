@@ -53,6 +53,7 @@ However, if you ever find a need to change them:
     ... [config]
     ... update_interval = 30
     ... wrong_penalty = 10
+    ... templates = index.html top.html table.html users.html
     ... """)
     >>> tuned_contest = ConfiguredContest(fake_file)
     >>> contest.update_interval
@@ -63,3 +64,5 @@ However, if you ever find a need to change them:
     20
     >>> tuned_contest.wrong_penalty
     10
+    >>> tuned_contest.templates
+    ['index.html', 'top.html', 'table.html', 'users.html']
