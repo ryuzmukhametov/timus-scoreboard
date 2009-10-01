@@ -55,6 +55,7 @@ class ConfiguredContest(Contest):
         parser = ConfigParser.ConfigParser()
         parser.readfp(fp)
         self.load_configuration(parser)
+        super(ConfiguredContest, self).__init__()
 
     def load_configuration(self, parser):
         self.title = parser.get('contest', 'title')
