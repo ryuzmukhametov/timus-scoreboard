@@ -136,6 +136,7 @@ class Crawler(object):
         """Log a message."""
         # TODO: use logging module from stdlib or at least print the date
         sys.stderr.write(message)
+        sys.stderr.write('\n')
 
     def build_template_loader(self):
         """Build Jinja2 template loader that allows users to override templates
