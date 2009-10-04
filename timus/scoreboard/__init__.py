@@ -12,11 +12,11 @@ import datetime
 import urllib2
 import urlparse
 import re
-import ConfigParser
 import optparse
 
-from BeautifulSoup import BeautifulSoup
 import jinja2
+from BeautifulSoup import BeautifulSoup
+from configobj import ConfigObj
 
 
 def parse_date(str):
@@ -81,29 +81,33 @@ class ConfiguredContest(Contest):
     """Subclass of Contest that reads configuration from a text file.
     """
 
-    def __init__(self, fp):
-        parser = ConfigParser.ConfigParser()
-        parser.readfp(fp)
-        self.load_configuration(parser)
+    def __init__(self, source):
+        config = ConfigObj(source, list_values=False, file_error=True,
+                           encoding='utf-8')
+        self.load_configuration(config)
         super(ConfiguredContest, self).__init__()
 
-    def load_configuration(self, parser):
-        self.title = parser.get('contest', 'title')
-        self.start = parse_date(parser.get('contest', 'start'))
-        self.end = parse_date(parser.get('contest', 'end'))
-        self.users = dict(parser.items('users'))
-        self.problems = dict(parser.items('problems'))
-        for name, getter in (('wrong_penalty', 'getint'),
-                             ('crawl_pause', 'getfloat'),
-                             ('update_interval', 'getfloat'),
-                             ('start_url', 'get'),
-                             ('template_dir', 'get'),
-                             ('output_dir', 'get')):
-            if parser.has_option('config', name):
-                value = getattr(parser, getter)('config', name)
-                setattr(self, name, value)
-        if parser.has_option('config', 'templates'):
-            self.templates = parser.get('config', 'templates').split()
+    def load_configuration(self, config):
+        self.title = config['contest']['title']
+        self.start = parse_date(config['contest']['start'])
+        self.end = parse_date(config['contest']['end'])
+        self.users = dict(config['users'].dict())
+        self.problems = dict(config['problems'].dict())
+        if 'config' in config:
+            section = config['config']
+            for name, getter in (('wrong_penalty', 'as_int'),
+                                 ('crawl_pause', 'as_float'),
+                                 ('update_interval', 'as_float'),
+                                 ('start_url', '__getitem__'),
+                                 ('template_dir', '__getitem__'),
+                                 ('output_dir', '__getitem__')):
+                if name in section:
+                    value = getattr(section, getter)(name)
+                    setattr(self, name, value)
+            # Special handling. Or we could just use list parsing from
+            # configobj.
+            if 'templates' in section:
+                self.templates = section['templates'].split()
 
 
 class Crawler(object):

@@ -9,7 +9,7 @@ setup(name='timus.scoreboard',
     author_email='adomas@shrubberysoft.com',
     #url='http://github.com/admp/timus-scoreboard',
     packages=find_packages(),
-    install_requires=['BeautifulSoup==3.0.7a', 'Jinja2'],
+    install_requires=['BeautifulSoup==3.0.7a', 'Jinja2', 'configobj'],
     entry_points={
         'console_scripts': [
             "timus-scoreboard = timus.scoreboard:main"

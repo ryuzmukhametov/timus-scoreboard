@@ -31,15 +31,15 @@ We will examine what this file gets parsed to:
     >>> contest = ConfiguredContest(fake_file)
     
     >>> contest.title
-    'My sample contest'
+    u'My sample contest'
     >>> contest.start
     datetime.datetime(2012, 10, 1, 12, 0)
     >>> contest.end
     datetime.datetime(2012, 10, 1, 17, 0)
     >>> sorted(contest.problems.items())
-    [('1000', 'A'), ('1001', 'B'), ('1002', 'C'), ('1003', 'D')]
+    [(u'1000', u'A'), (u'1001', u'B'), (u'1002', u'C'), (u'1003', u'D')]
     >>> sorted(contest.users.items())
-    [('1000', 'Team 1 (John, Jack, Suzan)'), ('1001', 'Team 2 (Mike, Roger, Dan)')]
+    [(u'1000', u'Team 1 (John, Jack, Suzan)'), (u'1001', u'Team 2 (Mike, Roger, Dan)')]
 
 Certain configuration parameters are also accepted albeit not required.
 The defaults are sensible enough not to be changed:
@@ -65,4 +65,4 @@ However, if you ever find a need to change them:
     >>> tuned_contest.wrong_penalty
     10
     >>> tuned_contest.templates
-    ['index.html', 'top.html', 'table.html', 'users.html']
+    [u'index.html', u'top.html', u'table.html', u'users.html']
