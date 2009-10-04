@@ -2,6 +2,8 @@
 *.pyo
 .installed.cfg
 /bin
+/build
+/dist
 /develop-eggs
 /timus.scoreboard.egg-info
 /parts
