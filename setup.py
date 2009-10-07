@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='timus.scoreboard',
-    version='0.1',
+    version='0.2',
     description='Custom contest support for the Timus Online Judge',
     long_description=open('README').read(),
     author='Adomas Paltanavicius',
