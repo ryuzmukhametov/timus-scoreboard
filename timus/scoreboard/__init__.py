@@ -225,8 +225,8 @@ class Crawler(object):
     def update(self):
         """Crawl the pages and update the board."""
         url = self.contest.start_url
-        seen_older = seen_newer = False
-        while not seen_older:
+        seen_older = seen_newer = seen_seen = False
+        while not seen_older and not seen_seen:
             self.log('Retrieving %s...' % url)
             source = urllib2.urlopen(url)
             next_link, items = self.extract(source)
@@ -239,8 +239,10 @@ class Crawler(object):
                     seen_newer = True
                 if item.date < self.contest.start:
                     seen_older = True
-                if item.id not in self.seen and \
-                   item.problem in self.contest.problems and \
+                if item.id in self.seen:
+                    seen_seen = True
+                    continue
+                if item.problem in self.contest.problems and \
                    item.user in self.contest.users and \
                    self.contest.start <= item.date <= self.contest.end:
                    # Was the problem already accepted for this team?
