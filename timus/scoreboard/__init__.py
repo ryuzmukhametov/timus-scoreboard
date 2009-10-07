@@ -5,6 +5,8 @@ helps by scraping the judge status pages in order to generate score
 table (all according to ACM rules).
 """
 
+from __future__ import with_statement
+
 import sys
 import os.path
 import time
