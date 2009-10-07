@@ -161,7 +161,7 @@ class Crawler(object):
         items = []
         def user_url_to_id(url):
             """author.aspx?id=84033 => 84033"""
-            return int(url[url.find('id=')+3:])
+            return url[url.find('id=')+3:]
         def all_child_text(col):
             return u' '.join(map(unicode.strip, col.findAll(text=True)))
         column_extractors = {
@@ -169,7 +169,7 @@ class Crawler(object):
             'date': ('date', lambda col: parse_date(all_child_text(col))),
             'verdict_ac': ('status', lambda col: all_child_text(col)),
             'verdict_rj': ('status', lambda col: all_child_text(col)),
-            'problem': ('problem', lambda col: int(col.find('a').string.strip())),
+            'problem': ('problem', lambda col: col.find('a').string.strip()),
             # We want an ID only
             'coder': ('user', lambda col: (user_url_to_id(col.find('a')['href'])))
         }
@@ -196,7 +196,7 @@ class Crawler(object):
                 table.setdefault(user, {})[problem] = odict(plus='', time='')
                 status = self.board[user][problem]
                 if status.accepted:
-                    delta = get_minutes(status.accepted - start_date)
+                    delta = get_minutes(status.accepted - self.contest.start)
                     table[user][problem].update(
                         plus='+%s' % (str(status.wrong) if status.wrong else ''),
                         time='%d:%.2d' % divmod(delta, 60))
