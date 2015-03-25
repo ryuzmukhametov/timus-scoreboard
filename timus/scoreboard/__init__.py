@@ -71,9 +71,11 @@ class Contest(object):
 
     # Self-explanatory configuration variables
     wrong_penalty = 20
-    crawl_pause = 5.0
+    crawl_pause = 1.0
     update_interval = 60.0
-    start_url = 'http://acm.timus.ru/status.aspx?count=100'
+
+    #start_url = 'http://acm.timus.ru/status.aspx?count=3000&from=6173163'
+    start_url = 'http://acm.timus.ru/status.aspx?space=1&from=6173163&count=1000'
     template_dir = None
     templates = ('index.html', 'top.html', 'table.html')
     output_dir = 'output'
@@ -157,7 +159,8 @@ class Crawler(object):
         soup = BeautifulSoup(source)
         footer = soup.find('td', {'class': 'footer_right'})
         next_link = footer.find('a', text=re.compile('Next')).parent['href']
-        table = soup.find('table', {'class': 'status'})
+        table = soup.find('table', {'class': 'status status_nofilter'})
+        #print table
         items = []
         def user_url_to_id(url):
             """author.aspx?id=84033 => 84033"""
@@ -169,11 +172,14 @@ class Crawler(object):
             'date': ('date', lambda col: parse_date(all_child_text(col))),
             'verdict_ac': ('status', lambda col: all_child_text(col)),
             'verdict_rj': ('status', lambda col: all_child_text(col)),
-            'problem': ('problem', lambda col: col.find('a').string.strip()),
+            #'problem': ('problem', lambda col: col.find('a').string.strip()),
+            'problem': ('problem', lambda col: all_child_text(col).strip()[0:4]),
             # We want an ID only
             'coder': ('user', lambda col: (user_url_to_id(col.find('a')['href'])))
         }
         for row in table.findAll('tr'):
+            if row.get('class', "") == "":
+                continue
             if row['class'] in ('header',):
                 continue
             data = odict()
@@ -233,6 +239,7 @@ class Crawler(object):
             source = urllib2.urlopen(url)
             next_link, items = self.extract(source)
             url = urlparse.urljoin(url, next_link)
+            url = url + "&count=1000"
             ## TODO: we should not recrawl all pages every time. An easy fix
             ## would be to stop fetching new pages as soon as there are 
             ## `seen` items already.
